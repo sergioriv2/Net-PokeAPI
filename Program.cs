@@ -9,6 +9,7 @@ using PokeApi.Data;
 using PokeApi.Interfaces;
 using PokeApi.Middlewares;
 using PokeApi.Repository;
+using System;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -40,6 +41,7 @@ builder.Services.AddDbContext<DataContext>(options =>
     }
 );
 
+// JWT Config
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(
                    options =>
                    {
@@ -75,11 +77,63 @@ builder.Services.AddAuthentication(
                 IssuerSigningKey = new SymmetricSecurityKey(Key),
                 ClockSkew = TimeSpan.Zero
             };
+
+            options.Events = new JwtBearerEvents
+            {
+                OnAuthenticationFailed = context =>
+                {
+                    context.Response.Headers.Add("AuthenticationFailed", "true");
+                    context.Response.Headers.Add("Exception", context.Exception.ToString());
+                    Console.WriteLine("Autenticación fallida: " + context.Exception.Message);
+                    Console.WriteLine("Error inesperado en la autenticación: {Error}" + context.Exception.ToString());
+                    return Task.CompletedTask;
+                },
+                OnTokenValidated = context =>
+                {
+                    Console.WriteLine("Token validado para {Username}" + context.Principal.Identity.Name);
+                    return Task.CompletedTask;
+                },
+                OnChallenge = context =>
+                {
+                    Console.WriteLine("Desafío de autenticación iniciado");
+                    return Task.CompletedTask;
+                },
+
+            };
         }
     );
 
 builder.Services.AddSingleton<IJWTManagerRepository, JWTManagerRepository>();
 builder.Services.AddScoped<ITrainerRepository, TrainerRepository>();
+
+// Swagger
+builder.Services.AddSwaggerGen(option =>
+{
+    option.SwaggerDoc("v1", new OpenApiInfo { Title = "PokeAPI", Version = "v1" });
+    option.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Please enter a valid token",
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        BearerFormat = "JWT",
+        Scheme = "Bearer"
+    });
+    option.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type=ReferenceType.SecurityScheme,
+                    Id="Bearer"
+                }
+            },
+            new string[]{}
+        }
+    });
+});
 
 var app = builder.Build();
 
@@ -105,7 +159,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

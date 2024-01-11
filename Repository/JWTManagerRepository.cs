@@ -34,7 +34,7 @@ namespace PokeApi.Repository
                                 new Claim("username", username)
                             }
                         ),
-                    Expires = date.AddMinutes(1),
+                    Expires = date.AddMinutes(10),
                     NotBefore = date,
                     SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(accessTokenKey), SecurityAlgorithms.HmacSha256Signature)
                 };
