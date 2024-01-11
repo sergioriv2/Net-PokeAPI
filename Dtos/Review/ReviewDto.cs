@@ -1,4 +1,4 @@
-﻿namespace PokeApi.Dtos
+﻿namespace PokeApi.Dtos.Review
 {
     public class ReviewDto
     {

@@ -1,15 +1,24 @@
-﻿namespace PokeApi.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace PokeApi.Models
 {
-    public class Pokemon
+    public class Pokemon : BaseModel
     {
-        public string Id { get; set; }
+        [Required]
         public string Name { get; set; }
-        public DateTime Birthdate { get; set; }
 
-        public ICollection<Review> Reviews { get; set; }
+        [Required]
+        public string TrainerId { get; set; }
 
-        public ICollection<PokemonAbility> PokemonAbilities { get; set; }
+        public Trainer Trainer { get; set; }
+        public DateTime? Birthdate { get; set; }
 
-        public ICollection<PokemonType> PokemonTypes { get; set; }
+        public ICollection<Review> Reviews { get; set; } = new List<Review>();
+
+        public ICollection<PokemonAbility> PokemonAbilities { get; set; } = new List<PokemonAbility>();
+
+        public ICollection<PokemonType> PokemonTypes { get; set; } = new List<PokemonType>();
+
+        public Pokemon() : base() { }
     }
 }

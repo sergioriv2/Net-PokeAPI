@@ -1,4 +1,5 @@
-﻿using PokeApi.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using PokeApi.Data;
 using PokeApi.Interfaces;
 using PokeApi.Models;
 
@@ -10,27 +11,49 @@ namespace PokeApi.Repository
 
         public PokemonRepository(DataContext context)
         {
-            this._context = context;
+            _context = context;
         }
 
-        public Pokemon GetPokemon(string id)
+        public async Task<bool> CreatePokemon(string typeId, string trainerId, Pokemon pokemon)
         {
-            return _context.Pokemons.Where(x => x.Id == id).FirstOrDefault();
+            var typeEntity = await _context.Types.Where(e => e.Id == typeId).FirstOrDefaultAsync();
+            var PokemonTypeEntity = new PokemonType()
+            {
+                Pokemon = pokemon,
+                Type = typeEntity
+            };
+
+            pokemon.TrainerId = trainerId;
+
+            await _context.AddAsync(PokemonTypeEntity);
+            await _context.AddAsync(pokemon);
+            return await Save();
         }
 
-        public Pokemon GetPokemonByName(string name)
+        public async Task<Pokemon> GetPokemon(string id)
         {
-            return _context.Pokemons.Where(x => x.Name == name).FirstOrDefault();
+            return await _context.Pokemons.Where(x => x.Id == id).FirstOrDefaultAsync();
         }
 
-        public ICollection<Pokemon> GetPokemons()
+        public async Task<Pokemon> GetPokemonByName(string name)
         {
-            return _context.Pokemons.OrderBy(p => p.Id).ToList();
+            return await _context.Pokemons.Where(x => x.Name == name).FirstOrDefaultAsync();
         }
 
-        public bool PokemonExists(string id)
+        public async Task<List<Pokemon>> GetPokemons()
         {
-            return _context.Pokemons.Any(p => p.Id == id);
+            return await _context.Pokemons.ToListAsync();
+        }
+
+        public async Task<bool> PokemonExists(string id)
+        {
+            return await _context.Pokemons.AnyAsync(p => p.Id == id);
+        }
+
+        public async Task<bool> Save()
+        {
+            var saved = await _context.SaveChangesAsync();
+            return saved > 0;
         }
     }
 }

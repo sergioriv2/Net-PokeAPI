@@ -1,4 +1,4 @@
-﻿namespace PokeApi.Dtos
+﻿namespace PokeApi.Dtos.Pokemon
 {
     public class PokemonDto
     {

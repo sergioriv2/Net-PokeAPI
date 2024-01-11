@@ -1,10 +1,16 @@
-﻿namespace PokeApi.Models
-{
-    public class Type
-    {
-        public string Id { get; set; }
-        public string Name { get; set; }
+﻿using System.ComponentModel.DataAnnotations;
 
-        public ICollection<PokemonType> PokemonTypes { get; set; }
+namespace PokeApi.Models
+{
+    public class Type : BaseModel
+    {
+        [Required]
+        public string Name { get; set; }
+        public ICollection<PokemonType> PokemonTypes { get; set; } = new List<PokemonType>();
+
+        public Type() : base()
+        {
+            
+        }
     }
 }

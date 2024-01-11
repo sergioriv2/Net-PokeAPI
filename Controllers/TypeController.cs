@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using PokeApi.Dtos;
+using PokeApi.Dtos.Pokemon;
+using PokeApi.Dtos.PokemonTypes;
 using PokeApi.Interfaces;
 
 namespace PokeApi.Controllers
@@ -42,7 +43,7 @@ namespace PokeApi.Controllers
 
             if (!this._typeRepository.TypeExists(id))
             {
-                return NotFound(ModelState);
+                return NotFound();
             }
 
             var types = this._mapper.Map<TypeDto>(this._typeRepository.GetType());

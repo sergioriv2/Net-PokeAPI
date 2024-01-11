@@ -12,11 +12,9 @@ namespace PokeApi.Data
         public DbSet<Models.Type> Types { get; set; }
         public DbSet<PokemonType> PokemonTypes { get; set; }
         public DbSet<Review> Reviews { get; set; }
+        public  DbSet<RefreshTokens> RefreshTokens { get; set; }
 
-        public DataContext(DbContextOptions<DataContext> options) : base(options)
-        {
-                
-        }
+        public DataContext(DbContextOptions<DataContext> options) : base(options) { }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -1,11 +1,15 @@
-﻿namespace PokeApi.Models
-{
-    public class Ability
-    {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
+﻿using System.ComponentModel.DataAnnotations;
 
-        public ICollection<PokemonAbility> PokemonAbilities { get; set; }
+namespace PokeApi.Models
+{
+    public class Ability : BaseModel
+    {
+        [Required]
+        public string Name { get; set; }
+        [Required]
+        public string Description { get; set; }
+        public ICollection<PokemonAbility> PokemonAbilities { get; set; } = new HashSet<PokemonAbility>();
+
+        public Ability() : base() { }
     }
 }

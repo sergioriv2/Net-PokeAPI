@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using PokeApi.Dtos;
+using PokeApi.Dtos.Review;
 using PokeApi.Interfaces;
 using PokeApi.Models;
 
@@ -41,7 +41,7 @@ namespace PokeApi.Controllers
         {
             if (!this._reviewRepository.ReviewExist(id))
             {
-                return NotFound(ModelState);
+                return NotFound();
             }
 
             var review = this._mapper.Map<ReviewDto>(this._reviewRepository.GetReview(id));
@@ -63,7 +63,7 @@ namespace PokeApi.Controllers
         {
             if (!this._reviewRepository.PokemonExist(pokemonId))
             {
-                return NotFound(ModelState);
+                return NotFound();
             }
 
             var review = this._mapper.Map<List<ReviewDto>>(this._reviewRepository.GetReviewsByPokemon(pokemonId));

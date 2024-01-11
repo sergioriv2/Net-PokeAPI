@@ -4,11 +4,16 @@ namespace PokeApi.Interfaces
 {
     public interface IPokemonRepository
     {
-        ICollection<Pokemon> GetPokemons();
+        Task<List<Pokemon>> GetPokemons();
 
-        Pokemon GetPokemon(string id);
-        Pokemon GetPokemonByName(string name);
-        bool PokemonExists(string id);
+        Task<Pokemon> GetPokemon(string id);
+        Task<Pokemon> GetPokemonByName(string name);
+
+        Task<bool> CreatePokemon(string typeId, string trainerId, Pokemon pokemon);
+
+        Task<bool> PokemonExists(string id);
+
+        Task<bool> Save();
 
     }
 }

@@ -1,12 +1,20 @@
-﻿namespace PokeApi.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace PokeApi.Models
 {
-    public class PokemonAbility
+    public class PokemonAbility : BaseModel
     {
-        public string Id { get; set; }
+        [Required] 
         public string AbilityId { get; set; }
+
+        [Required]
+        public string PokemonId { get; set; }
+
+        public DateTime? LearnedAt { get; set; }
+
         public Ability Ability { get; set; }
         public Pokemon Pokemon { get; set; }
-        public string PokemonId { get; set; }
-        public DateTime? LearnedAt { get; set; }
+
+        public PokemonAbility() : base() { }
     }
 }
