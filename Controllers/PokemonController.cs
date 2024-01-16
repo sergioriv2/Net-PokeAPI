@@ -1,25 +1,32 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PokeApi.Dtos.FileUpload;
 using PokeApi.Dtos.Pokemon;
 using PokeApi.Interfaces;
 using PokeApi.Models;
+using System.Diagnostics;
+using System.Security.Claims;
 
 namespace PokeApi.Controllers
 {
     [Route("api/pokemons")]
     [ApiController]
+    [Authorize]
     public class PokemonController : Controller
     {
         private readonly IPokemonRepository _pokemonRepository;
+        private readonly ITrainerRepository _trainerRepository;
         private readonly IMapper _mapper;
 
-        public PokemonController(IPokemonRepository pokemonRepository, IMapper mapper)
+        public PokemonController(IPokemonRepository pokemonRepository, ITrainerRepository trainerRepository, IMapper mapper)
         {
             this._pokemonRepository = pokemonRepository;
+            this._trainerRepository = trainerRepository;
             this._mapper = mapper;
         }
 
-        [HttpGet("", Name ="GetPokemons")]
+        [HttpGet("", Name = "GetPokemons")]
         [ProducesResponseType(200, Type = typeof(ICollection<Pokemon>))]
         public async Task<IActionResult> GetPokemons()
         {
@@ -44,7 +51,7 @@ namespace PokeApi.Controllers
                 return NotFound();
             }
 
-            var pokemon =  _mapper.Map<PokemonDto>(await _pokemonRepository.GetPokemon(pokemonId));
+            var pokemon = _mapper.Map<PokemonDto>(await _pokemonRepository.GetPokemon(pokemonId));
 
             if (!ModelState.IsValid)
             {
@@ -56,20 +63,21 @@ namespace PokeApi.Controllers
         }
 
         [HttpPost]
-        [ProducesResponseType(201)]
+        [ProducesResponseType(201, Type = typeof(PokemonDto))]
         [ProducesResponseType(500)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> CreatePokemon(
-            [FromQuery] string typeId,
-            [FromQuery] string trainerId,
-            [FromBody] PokemonDto payload
+            [FromBody] CreatePokemonDto payload
         )
         {
+            var username = User.FindFirst("username")?.Value;
+
             if (payload == null)
             {
                 return BadRequest(ModelState);
             }
 
+            var trainerEntity = _trainerRepository.GetTrainerByUsername(username);
             var pokemonsByName = await _pokemonRepository.GetPokemonByName(payload.Name);
 
             if (pokemonsByName != null)
@@ -83,15 +91,56 @@ namespace PokeApi.Controllers
                 BadRequest(ModelState);
             }
 
-            var pokemonMapped = _mapper.Map<Pokemon>(payload);
 
-            if (!await _pokemonRepository.CreatePokemon(typeId, trainerId, pokemonMapped))
+            payload.Birthdate = payload.Birthdate == null ? DateTime.UtcNow : payload.Birthdate;
+            var pokemonMapped = _mapper.Map<Pokemon>(payload);
+            pokemonMapped.TrainerId = trainerEntity.Id;
+
+            var PokemonCreated = await _pokemonRepository.CreatePokemon(pokemonMapped, payload.TypeId);
+            if (PokemonCreated == null) 
             {
                 ModelState.AddModelError("", "Error at Saving Pokemon");
                 return StatusCode(StatusCodes.Status500InternalServerError, ModelState);
             }
 
-            return StatusCode(StatusCodes.Status201Created);
+            var PokemonResponseMapped = _mapper.Map<PokemonDto>(PokemonCreated);
+
+            return StatusCode(StatusCodes.Status201Created, PokemonResponseMapped);
+        }
+
+        [HttpPatch("pokemon/{pokemonId}")]
+        [ProducesResponseType(200, Type = typeof(PokemonDto))]
+        public async Task<IActionResult> UpdatePokemonImage(
+              [FromForm] FileUploadDto payload,
+              string pokemonId
+            )
+        {
+            try
+            {
+                var username = User.FindFirst("username")?.Value;
+                if (payload == null)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                if (!await _pokemonRepository.PokemonExists(pokemonId))
+                {
+                    return NotFound();
+                }
+
+                var pokemonEntity = await _pokemonRepository.GetPokemon(pokemonId);
+                var updatedPokemon = await _pokemonRepository.UpdatePokemonImage(pokemonEntity, payload);
+
+                var mappedPokemon = _mapper.Map<PokemonDto>(updatedPokemon);
+
+                return Ok(mappedPokemon);
+
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine(ex.ToString());
+                return Ok();
+            }
         }
     }
 }

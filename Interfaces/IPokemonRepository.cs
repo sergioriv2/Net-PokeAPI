@@ -1,4 +1,5 @@
-﻿using PokeApi.Models;
+﻿using PokeApi.Dtos.FileUpload;
+using PokeApi.Models;
 
 namespace PokeApi.Interfaces
 {
@@ -9,7 +10,9 @@ namespace PokeApi.Interfaces
         Task<Pokemon> GetPokemon(string id);
         Task<Pokemon> GetPokemonByName(string name);
 
-        Task<bool> CreatePokemon(string typeId, string trainerId, Pokemon pokemon);
+        Task<Pokemon> CreatePokemon(Pokemon pokemon, string typeId);
+
+        Task<Pokemon> UpdatePokemonImage(Pokemon pokemon, FileUploadDto image);
 
         Task<bool> PokemonExists(string id);
 

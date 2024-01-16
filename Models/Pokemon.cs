@@ -10,6 +10,8 @@ namespace PokeApi.Models
         [Required]
         public string TrainerId { get; set; }
 
+        public string? Image { get; set; }
+
         public Trainer Trainer { get; set; }
         public DateTime? Birthdate { get; set; }
 

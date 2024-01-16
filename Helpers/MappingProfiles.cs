@@ -31,6 +31,7 @@ namespace PokeApi.Helpers
             // Pokemon DTOs
             CreateMap<PokemonDto, Pokemon>();
             CreateMap<Pokemon, PokemonDto>();
+            CreateMap<CreatePokemonDto, Pokemon>();
 
         }
     }

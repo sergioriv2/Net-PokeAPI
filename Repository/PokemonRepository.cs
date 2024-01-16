@@ -1,20 +1,25 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using MimeDetective;
 using PokeApi.Data;
+using PokeApi.Dtos.FileUpload;
 using PokeApi.Interfaces;
 using PokeApi.Models;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace PokeApi.Repository
 {
     public class PokemonRepository : IPokemonRepository
     {
         private readonly DataContext _context;
+        private readonly IAWSRepository _awsRepository;
 
-        public PokemonRepository(DataContext context)
+        public PokemonRepository(DataContext context, IAWSRepository awsRepository)
         {
             _context = context;
+            this._awsRepository = awsRepository;
         }
 
-        public async Task<bool> CreatePokemon(string typeId, string trainerId, Pokemon pokemon)
+        public async Task<Pokemon> CreatePokemon(Pokemon pokemon, string typeId)
         {
             var typeEntity = await _context.Types.Where(e => e.Id == typeId).FirstOrDefaultAsync();
             var PokemonTypeEntity = new PokemonType()
@@ -23,11 +28,12 @@ namespace PokeApi.Repository
                 Type = typeEntity
             };
 
-            pokemon.TrainerId = trainerId;
-
             await _context.AddAsync(PokemonTypeEntity);
             await _context.AddAsync(pokemon);
-            return await Save();
+
+            await _context.SaveChangesAsync();
+
+            return pokemon;
         }
 
         public async Task<Pokemon> GetPokemon(string id)
@@ -54,6 +60,41 @@ namespace PokeApi.Repository
         {
             var saved = await _context.SaveChangesAsync();
             return saved > 0;
+        }
+
+        public async Task<Pokemon> UpdatePokemonImage(Pokemon pokemon, FileUploadDto fileDetails)
+        {
+            try
+            {
+                using (var stream = new MemoryStream())
+                {
+                    fileDetails.FileData.CopyTo(stream);
+                    string bucketKey = $"pokemon-images/{pokemon.Name}.{fileDetails.FileType}";
+                    System.Console.WriteLine("Key: " + bucketKey);
+
+                    var fileToUpload = new S3File()
+                    {
+                        Key = bucketKey,
+                        BucketName = "poke-api-v2",
+                        InputStream = stream
+                    };
+
+                    string imageLocation = await _awsRepository.UploadS3Image(fileToUpload);
+
+                    pokemon.Image = imageLocation;
+                    pokemon.UpdatedAt = DateTime.UtcNow;
+
+                    _context.Pokemons.Update(pokemon);
+                    await _context.SaveChangesAsync();
+
+                    return pokemon;
+                }
+               
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
     }
 }
