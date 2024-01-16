@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PokeApi.Data;
+using PokeApi.Filters;
 using PokeApi.Interfaces;
 using PokeApi.Models;
 
@@ -14,10 +15,27 @@ namespace PokeApi.Repository
         }
         public async Task<Trainer> CreateTrainer(Trainer trainer)
         {
-            trainer.Password = BCrypt.Net.BCrypt.EnhancedHashPassword(trainer.Password);
-            await _context.AddAsync(trainer);
-            await Save();
-            return trainer;
+            try
+            {
+                var trainerExist = await TrainerExists(new Trainer() { Username = trainer.Username });
+
+                if (trainerExist)
+                {
+                    throw new CustomValidationException(CustomValidationCodes.EmailAlreadyOnUse);
+                }
+
+                trainer.Password = BCrypt.Net.BCrypt.EnhancedHashPassword(trainer.Password);
+                await _context.AddAsync(trainer);
+                await Save();
+                return trainer;
+            } catch(CustomValidationException)
+            {
+                throw;
+            } catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                throw;
+            }
         }
 
         public async Task<bool> Save()
@@ -65,9 +83,9 @@ namespace PokeApi.Repository
             return this._context.Trainers.ToList();
         }
 
-        public bool TrainerExists(string id)
+        public async Task<bool> TrainerExists(string id)
         {
-            return this._context.Trainers.Any(t => t.Id == id);
+            return await this._context.Trainers.AnyAsync(t => t.Id == id);
         }
 
         public Task<bool> TrainerExists(Trainer trainer)
@@ -75,9 +93,27 @@ namespace PokeApi.Repository
             return this._context.Trainers.AnyAsync(t => t.Username == trainer.Username || t.Id == trainer.Id);
         }
 
-        public bool VerifyCredentials(Trainer trainer, string passwordToVerify)
+        public async Task<Trainer> VerifyCredentials(Trainer trainer, string passwordToVerify)
         {
-            return BCrypt.Net.BCrypt.EnhancedVerify(passwordToVerify, trainer.Password);
+            try
+            {
+                var trainerExist = await TrainerExists(trainer);
+                if (!trainerExist) throw new CustomValidationException(CustomValidationCodes.InvalidTrainerEmail);
+
+                var trainerEntity = GetTrainerByUsername(trainer.Username);
+                var areValidCredentials = BCrypt.Net.BCrypt.EnhancedVerify(passwordToVerify, trainerEntity.Password);
+                if (!areValidCredentials) throw new CustomValidationException(CustomValidationCodes.PasswordsDoesntMatch);
+
+                return trainerEntity;
+            } catch (CustomValidationException)
+            {
+                throw;
+            } catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message.ToString());
+                Console.WriteLine(ex.StackTrace);
+                throw;
+            }
         }
     }
 }

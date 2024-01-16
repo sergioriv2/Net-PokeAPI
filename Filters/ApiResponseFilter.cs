@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc.Filters;
 using PokeApi.Responses;
 
-namespace PokeApi.Middlewares
+namespace PokeApi.Filters
 {
     public class ApiResponseFilter : IAsyncResultFilter
     {
@@ -30,5 +30,4 @@ namespace PokeApi.Middlewares
             return;
         }
     }
-
 }

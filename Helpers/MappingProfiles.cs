@@ -13,26 +13,14 @@ namespace PokeApi.Helpers
     {
         public MappingProfiles()
         {
-
             // PokemonTypes DTOs
             CreateMap<Models.Type, TypeDto>();
-
-            // Trainer DTOs
-            CreateMap<Trainer, TrainerDto>();
-            CreateMap<TrainerSignupDto, Trainer>();
-            CreateMap<TrainerLoginDto, Trainer>();
 
             // Review DTOs
             CreateMap<Review, ReviewDto>();
 
             // Ability DTOs
             CreateMap<Ability, AbilityDto>();
-
-            // Pokemon DTOs
-            CreateMap<PokemonDto, Pokemon>();
-            CreateMap<Pokemon, PokemonDto>();
-            CreateMap<CreatePokemonDto, Pokemon>();
-
         }
     }
 }

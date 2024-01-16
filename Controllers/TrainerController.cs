@@ -3,16 +3,17 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PokeApi.Dtos.Auth;
 using PokeApi.Dtos.Trainer;
+using PokeApi.Filters.Exceptions.Trainer;
 using PokeApi.Interfaces;
 using PokeApi.Models;
-using PokeApi.Repository;
 using PokeApi.Responses;
 
 namespace PokeApi.Controllers
 {
-    [Authorize]
-    [Route("/api/trainers")]
     [ApiController]
+    [Authorize]
+    [TypeFilter(typeof(TrainerExceptionsFilter))]
+    [Route("/api/trainers")]
     public class TrainerController : Controller
     {
         private readonly ITrainerRepository _trainerRepository;
@@ -28,26 +29,14 @@ namespace PokeApi.Controllers
 
         [AllowAnonymous]
         [HttpPost("auth/sign-in", Name = "SignInTrainer")]
-        [ProducesResponseType(200, Type = typeof(APIResponseController<TrainerDto>))]
+        [ProducesResponseType(200, Type = typeof(APIResponseController<TrainerLoginResponse>))]
         [ProducesResponseType(400)]
         public async Task<IActionResult> SignInTrainer(
-                [FromBody]
-                TrainerLoginDto payload
+                [FromBody] TrainerLoginDto payload
             )
         {
-            var trainerMapped = _mapper.Map<Trainer>(payload);
-            var trainerExist = await _trainerRepository.TrainerExists(trainerMapped);
-            if (!trainerExist) { return NotFound(); };
-
-
-            var trainerEntity = _trainerRepository.GetTrainerByUsername(payload.Username);
-            var areCredentialsValid = _trainerRepository.VerifyCredentials(trainerEntity, payload.Password);
-
-            if (!areCredentialsValid)
-            {
-                return BadRequest();
-            }
-
+            var trainerMapped = _mapper.Map<TrainerLoginDto, Trainer>(payload);
+            var trainerEntity = await _trainerRepository.VerifyCredentials(trainerMapped, payload.Password);
             var tokensGenerated = _jwtManagerRepository.GenerateJWT(payload.Username);
 
             if (tokensGenerated == null)
@@ -63,10 +52,7 @@ namespace PokeApi.Controllers
 
             await _trainerRepository.AddUserRefreshToken(tokensEntity);
 
-            if (!ModelState.IsValid) { return BadRequest(ModelState); };
-
             return Ok(tokensGenerated);
-
         }
 
         [AllowAnonymous]
@@ -78,14 +64,10 @@ namespace PokeApi.Controllers
                 TrainerSignupDto payload
             )
         {
-            var trainerExist = await _trainerRepository.TrainerExists(new Trainer() { Username = payload.Username });
-            if (trainerExist) { return BadRequest(); }
+            var payloadMapped = _mapper.Map<TrainerSignupDto, Trainer>(payload);
 
-            var mappedPayloadToTrainer = _mapper.Map<Trainer>(payload);
-            var trainerEntity = await _trainerRepository.CreateTrainer(mappedPayloadToTrainer);
+            var trainerEntity = await _trainerRepository.CreateTrainer(payloadMapped);
             var trainerResponse = _mapper.Map<TrainerDto>(trainerEntity);
-
-            if (!ModelState.IsValid) { return BadRequest(ModelState); }
 
             return StatusCode(201, trainerResponse);
 
@@ -107,9 +89,9 @@ namespace PokeApi.Controllers
 
         [HttpGet("trainer/{id}", Name = "GetTrainerById")]
         [ProducesResponseType(200, Type = typeof(TrainerDto))]
-        public IActionResult GetTrainerById(string id)
+        public async Task<IActionResult> GetTrainerById(string id)
         {
-            if (!this._trainerRepository.TrainerExists(id))
+            if (! await this._trainerRepository.TrainerExists(id))
             {
                 return NotFound();
             }

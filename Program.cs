@@ -1,16 +1,5 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
 using PokeApi;
 using PokeApi.Configs;
-using PokeApi.Data;
-using PokeApi.Interfaces;
-using PokeApi.Middlewares;
-using PokeApi.Repository;
-using System.Text;
-using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 var appConfiguration = new AppConfigurations();

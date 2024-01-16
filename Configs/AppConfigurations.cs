@@ -1,13 +1,18 @@
 ﻿using Amazon.S3;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using PokeApi.Data;
+using PokeApi.Filters;
+using PokeApi.Filters.Exceptions.Trainer;
 using PokeApi.Interfaces;
-using PokeApi.Middlewares;
 using PokeApi.Repository;
+using System.Net;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -20,7 +25,7 @@ namespace PokeApi.Configs
 
         public AppConfigurations()
         {
-       
+
         }
 
         public void Configure(WebApplicationBuilder builder)
@@ -31,8 +36,8 @@ namespace PokeApi.Configs
             ConfigureDatabase();
             ConfigureSeeders();
             ConfigureAuthentication();
-            ConfigureRepositories();
             ConfigureAutoMapper();
+            ConfigureRepositories();
             ConfigureSwagger();
         }
 
@@ -125,7 +130,58 @@ namespace PokeApi.Configs
                             ClockSkew = TimeSpan.Zero
                         };
 
-                        
+                        options.Events = new JwtBearerEvents()
+                        {
+                            OnChallenge = async context =>
+                            {
+                                if (!context.Response.HasStarted)
+                                {
+                                    context.Response.StatusCode = ((int)HttpStatusCode.Unauthorized);
+                                    context.Response.ContentType = "application/json";
+
+                                    var UnauthorizedExceptionDetails = new
+                                    {
+                                        Property = "Authorization Header",
+                                        Constraints = new
+                                        {
+                                            InvalidJwt = "Invalid JWT Provided"
+                                        }
+                                    };
+
+                                    await context.Response.WriteAsJsonAsync(new
+                                    {
+                                        statusCode = ((int)HttpStatusCode.Unauthorized),
+                                        message = "Unauthorized",
+                                        payload = new object(),
+                                        errors = new List<object>() {
+                                            UnauthorizedExceptionDetails
+                                         }
+                                    });
+                                }
+                                context.HandleResponse();
+                            },
+
+                            OnForbidden = async context =>
+                            {
+                                if (!context.Response.HasStarted)
+                                {
+                                    context.Response.StatusCode = ((int)HttpStatusCode.Forbidden);
+                                    context.Response.ContentType = "application/json";
+
+
+                                    await context.Response.WriteAsJsonAsync(new
+                                    {
+                                        statusCode = ((int)HttpStatusCode.Forbidden),
+                                        message = "Forbidden",
+                                        payload = new object(),
+                                        errors = new List<string>() {
+                                            "Forbidden"
+                                         }
+                                    });
+                                }
+                            }
+                        };
+
                     }
                 );
 
@@ -140,10 +196,21 @@ namespace PokeApi.Configs
                     options =>
                     {
                         options.Filters.Add<ApiResponseFilter>();
+                        options.Filters.Add<ValidationFilter>();
+                        options.Filters.Add<TrainerExceptionsFilter>();
                     }
                 )
                 .AddJsonOptions(x => x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
 
+            // Validator Config
+            builder.Services.AddFluentValidationAutoValidation();
+            builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+            builder.Services.Configure<ApiBehaviorOptions>(options =>
+            {
+                options.SuppressModelStateInvalidFilter = true;
+            });
+
+            builder.Services.AddFluentValidationAutoValidation().AddFluentValidationClientsideAdapters();
             builder.Services.AddScoped<IPokemonRepository, PokemonRepository>();
             builder.Services.AddScoped<ITypeRepository, TypeRepository>();
             builder.Services.AddScoped<ITrainerRepository, TrainerRepository>();
